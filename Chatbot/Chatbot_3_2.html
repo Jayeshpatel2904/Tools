@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ChatGPT-Style Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #f7f7f8;
+      font-family: "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 0 16px;
+    }
+
+    .chat-header {
+      padding: 20px 0;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #10a37f;
+    }
+
+    .chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 20px;
+    }
+
+    .message {
+      max-width: 90%;
+      margin: 10px 0;
+      padding: 12px 16px;
+      border-radius: 8px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .user-message {
+      align-self: flex-end;
+      background-color: #dcf8c6;
+    }
+
+    .bot-message {
+      align-self: flex-start;
+      background-color: #e6e6e6;
+    }
+
+    .input-area {
+      display: flex;
+      padding: 16px 0;
+      border-top: 1px solid #ccc;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .input-area button {
+      margin-left: 10px;
+      padding: 12px 20px;
+      background-color: #10a37f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .input-area button:hover {
+      background-color: #0e8c6a;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">ChatGPT-Style Chatbot</div>
+    <div id="chat-box" class="chat-box"></div>
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="Send a message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chat-box');
+    const input = document.getElementById('user-input');
+
+    const OPENROUTER_API_KEY = "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";
+    const MODEL = "deepseek/deepseek-r1-0528:free";
+
+    function appendMessage(content, className) {
+      const div = document.createElement('div');
+      div.className = `message ${className}`;
+      div.textContent = content;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
+
+      appendMessage(userMessage, 'user-message');
+      input.value = '';
+      appendMessage('Typing...', 'bot-message');
+
+      try {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost",
+            "X-Title": "ChatGPT-Style Bot"
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: [
+              { role: "user", content: userMessage }
+            ]
+          })
+        });
+
+        const data = await res.json();
+        const reply = data.choices?.[0]?.message?.content || "No response.";
+
+        // remove typing
+        const typingDiv = chatBox.querySelector('.bot-message:last-child');
+        typingDiv.remove();
+
+        appendMessage(reply, 'bot-message');
+
+      } catch (err) {
+        console.error(err);
+        const typingDiv = chatBox.querySelector('.bot-message:last-child');
+        typingDiv.remove();
+        appendMessage("Error reaching AI.", 'bot-message');
+      }
+    }
+
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>

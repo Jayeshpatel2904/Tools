@@ -1,0 +1,430 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
+
+public class Filemanager extends JFrame {
+
+    private JTextField sourceField, destinationField, searchText, replaceText;
+    private JTable fileTable;
+    private DefaultTableModel tableModel;
+    private JProgressBar progressBar;
+    private JCheckBox includeSubfoldersCheckBox;
+    private JComboBox<String> fileTypeComboBox;  // ComboBox for file types
+
+    public Filemanager() {
+        // Set up frame properties
+        setTitle("File Manager");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);  // Start in full-screen mode
+        setLayout(new GridBagLayout());  // Use GridBagLayout for dynamic resizing
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        // Source Folder Section
+        JLabel sourceLabel = new JLabel("Source Folder:");
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.1;
+        add(sourceLabel, gbc);
+
+        sourceField = new JTextField();
+        gbc.gridx = 1;
+        gbc.gridwidth = 4;
+        gbc.weightx = 0.7;
+        add(sourceField, gbc);
+
+        JButton browseSourceButton = new JButton("Browse");
+        gbc.gridx = 5;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.2;
+        add(browseSourceButton, gbc);
+
+        // Destination Folder Section
+        JLabel destinationLabel = new JLabel("Destination Folder:");
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.1;
+        add(destinationLabel, gbc);
+
+        destinationField = new JTextField();
+        gbc.gridx = 1;
+        gbc.gridwidth = 4;
+        gbc.weightx = 0.7;
+        add(destinationField, gbc);
+
+        JButton browseDestinationButton = new JButton("Browse");
+        gbc.gridx = 5;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.2;
+        add(browseDestinationButton, gbc);
+
+        // Search and Replace Section
+        JLabel searchLabel = new JLabel("Search Text:");
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.1;
+        add(searchLabel, gbc);
+
+        searchText = new JTextField();
+        gbc.gridx = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 0.35;
+        add(searchText, gbc);
+
+        JLabel replaceLabel = new JLabel("Replace With:");
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.1;
+        add(replaceLabel, gbc);
+
+        replaceText = new JTextField();
+        gbc.gridx = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.35;
+        add(replaceText, gbc);
+
+        JButton searchAndPreviewButton = new JButton("Search and Preview");
+        gbc.gridx = 5;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.2;
+        add(searchAndPreviewButton, gbc);
+
+        // File Type Selection
+        JLabel fileTypeLabel = new JLabel("File Type:");
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.1;
+        add(fileTypeLabel, gbc);
+
+        // Add more file types to the ComboBox
+        String[] fileTypes = {
+                "All", "PDF", "Excel", "Text", "Word", "PowerPoint", "Image",
+                "Video", "Audio", "Compressed", "HTML"
+        };
+        fileTypeComboBox = new JComboBox<>(fileTypes);
+        gbc.gridx = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 0.7;
+        add(fileTypeComboBox, gbc);
+
+        // Checkbox to include subfolders
+        includeSubfoldersCheckBox = new JCheckBox("Include Subfolders");
+        gbc.gridx = 1;
+        gbc.gridy = 4;
+        gbc.gridwidth = 4;
+        gbc.weightx = 0.7;
+        add(includeSubfoldersCheckBox, gbc);
+
+        // Table for displaying file details
+        String[] columnNames = {"Current File Name", "Current Path", "New File Name", "New Path"};
+        tableModel = new DefaultTableModel(columnNames, 0);
+        fileTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(fileTable);
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 6;
+        gbc.gridheight = 1;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        add(scrollPane, gbc);
+
+        // Action Buttons (Copy, Move, Rename, Export, Delete)
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 5, 10, 10));
+        JButton copyButton = new JButton("Copy");
+        JButton moveButton = new JButton("Move");
+        JButton renameAndCopyButton = new JButton("Rename and Copy");
+        JButton deleteButton = new JButton("Delete");
+        JButton exportButton = new JButton("Export to CSV");
+        buttonPanel.add(copyButton);
+        buttonPanel.add(moveButton);
+        buttonPanel.add(renameAndCopyButton);
+        buttonPanel.add(deleteButton);
+        buttonPanel.add(exportButton);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.gridwidth = 6;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.0;
+        add(buttonPanel, gbc);
+
+        // Progress Bar
+        progressBar = new JProgressBar();
+        progressBar.setStringPainted(true);
+        gbc.gridy = 7;
+        gbc.gridwidth = 6;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.0;
+        add(progressBar, gbc);
+
+        // Button Listeners
+        browseSourceButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                selectFolder(sourceField);
+            }
+        });
+
+        browseDestinationButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                selectFolder(destinationField);
+            }
+        });
+
+        searchAndPreviewButton.addActionListener(e -> searchAndPreview());
+
+        copyButton.addActionListener(e -> performAction("copy"));
+        moveButton.addActionListener(e -> performAction("move"));
+        renameAndCopyButton.addActionListener(e -> performAction("renameAndCopy"));
+        deleteButton.addActionListener(e -> performDeleteAction());
+        exportButton.addActionListener(e -> exportTableToCSV());
+    }
+
+    // Folder selection method
+    private void selectFolder(JTextField textField) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File folder = fileChooser.getSelectedFile();
+            textField.setText(folder.getAbsolutePath());
+        }
+    }
+
+    // Search files in source directory and preview changes
+    private void searchAndPreview() {
+        File sourceFolder = new File(sourceField.getText());
+        if (!sourceFolder.exists()) {
+            JOptionPane.showMessageDialog(this, "Source folder does not exist!");
+            return;
+        }
+
+        tableModel.setRowCount(0);  // Clear the table
+        String searchTextValue = searchText.getText().toLowerCase();  // Make search case-insensitive
+
+        // Get the selected file type from the dropdown
+        String selectedFileType = (String) fileTypeComboBox.getSelectedItem();
+
+        // Recursively search files based on user input and selected file type
+        searchFilesRecursive(sourceFolder, searchTextValue, selectedFileType);
+    }
+
+																			   
+																								 
+																	   
+// Recursive method to search files in subdirectories (case-insensitive search)
+private void searchFilesRecursive(File folder, String searchTextValue, String selectedFileType) {
+    // Convert searchTextValue to lowercase to make it case-insensitive
+    searchTextValue = searchTextValue.toLowerCase();
+
+														 
+																									 
+    for (File file : folder.listFiles()) {
+        if (file.isDirectory() && includeSubfoldersCheckBox.isSelected()) {
+            searchFilesRecursive(file, searchTextValue, selectedFileType);  // Recurse into subfolders
+        } else if (file.isFile() && file.getName().toLowerCase().contains(searchTextValue)) {
+            // Perform case-insensitive file type matching
+            if (isFileTypeMatch(file, selectedFileType)) {
+                String newFileName = file.getName().toLowerCase().replace(searchTextValue, replaceText.getText().toLowerCase());
+                File newFile = new File(destinationField.getText(), newFileName);
+                tableModel.addRow(new Object[]{file.getName(), file.getAbsolutePath(), newFileName, newFile.getAbsolutePath()});
+											   
+								
+																					   
+				   
+            }
+        }
+    }
+}																 
+																						   
+
+    // Helper method to check if the file type matches the selected filter
+    private boolean isFileTypeMatch(File file, String selectedFileType) {
+        String fileName = file.getName().toLowerCase();  // Make file type check case-insensitive
+												   
+		 
+        switch (selectedFileType) {
+            case "All":
+                return true;  // Include all file types
+            case "PDF":
+                return fileName.endsWith(".pdf");
+            case "Excel":
+                return fileName.endsWith(".xls") || fileName.endsWith(".xlsx");
+            case "Text":
+                return fileName.endsWith(".txt");
+            case "Word":
+                return fileName.endsWith(".doc") || fileName.endsWith(".docx");
+            case "PowerPoint":
+                return fileName.endsWith(".ppt") || fileName.endsWith(".pptx");
+            case "Image":
+                return fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".png") ||
+                        fileName.endsWith(".gif") || fileName.endsWith(".bmp");
+            case "Video":
+                return fileName.endsWith(".mp4") || fileName.endsWith(".mkv") || fileName.endsWith(".avi") || fileName.endsWith(".mov");
+            case "Audio":
+                return fileName.endsWith(".mp3") || fileName.endsWith(".wav") || fileName.endsWith(".aac");
+            case "Compressed":
+                return fileName.endsWith(".zip") || fileName.endsWith(".rar") || fileName.endsWith(".7z");
+            case "HTML":
+                return fileName.endsWith(".html") || fileName.endsWith(".htm");
+            default:
+                return false;
+        }
+    }
+ 
+
+    // Perform file operations: copy, move, renameAndCopy using SwingWorker for real-time progress
+    private void performAction(String action) {
+        if (destinationField.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select a destination folder!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int totalFiles = tableModel.getRowCount();
+        progressBar.setValue(0);
+
+        // SwingWorker to perform the file operation in the background
+        SwingWorker<Void, Integer> worker = new SwingWorker<Void, Integer>() {
+            int filesProcessed = 0;
+
+            @Override
+            protected Void doInBackground() {
+                for (int i = 0; i < totalFiles; i++) {
+                    String currentFilePath = tableModel.getValueAt(i, 1).toString();
+                    String newFilePath = tableModel.getValueAt(i, 3).toString();
+
+                    File currentFile = new File(currentFilePath);
+                    File newFile = new File(newFilePath);
+
+                    try {
+                        switch (action) {
+                            case "copy":
+                                Files.copy(currentFile.toPath(), newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                break;
+                            case "move":
+                                Files.move(currentFile.toPath(), newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                break;
+                            case "renameAndCopy":
+                                Files.copy(currentFile.toPath(), newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                break;
+                        }
+                        filesProcessed++;
+                    } catch (IOException e) {
+                        JOptionPane.showMessageDialog(null, "Error performing action: " + e.getMessage());
+                    }
+                    publish((int) (((i + 1) / (double) totalFiles) * 100));
+                }
+                return null;
+            }
+
+            @Override
+            protected void process(List<Integer> chunks) {
+                int progress = chunks.get(chunks.size() - 1);
+                progressBar.setValue(progress);
+            }
+
+            @Override
+            protected void done() {
+                JOptionPane.showMessageDialog(null, action + " completed. Total files processed: " + filesProcessed);
+                progressBar.setValue(100);
+            }
+        };
+
+        worker.execute();  // Start the worker
+    }
+
+    // Delete files listed in the table
+    private void performDeleteAction() {
+        int totalFiles = tableModel.getRowCount();
+        int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete these files?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        // SwingWorker for real-time progress
+        SwingWorker<Void, Integer> worker = new SwingWorker<Void, Integer>() {
+            int filesDeleted = 0;
+
+            @Override
+            protected Void doInBackground() {
+                for (int i = 0; i < totalFiles; i++) {
+                    String filePath = tableModel.getValueAt(i, 1).toString();
+                    File file = new File(filePath);
+
+                    if (file.delete()) {
+                        filesDeleted++;
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Error deleting file: " + filePath);
+                    }
+                    publish((int) (((i + 1) / (double) totalFiles) * 100));
+                }
+                return null;
+            }
+
+            @Override
+            protected void process(List<Integer> chunks) {
+                int progress = chunks.get(chunks.size() - 1);
+                progressBar.setValue(progress);
+            }
+
+            @Override
+            protected void done() {
+                JOptionPane.showMessageDialog(null, "Delete completed. Total files deleted: " + filesDeleted);
+                progressBar.setValue(100);
+            }
+        };
+
+        worker.execute();  // Start the worker
+    }
+
+    // Export table data to CSV file
+    private void exportTableToCSV() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Table Data");
+        int userSelection = fileChooser.showSaveDialog(this);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave))) {
+                // Write column names
+                for (int i = 0; i < tableModel.getColumnCount(); i++) {
+                    writer.write(tableModel.getColumnName(i) + ",");
+                }
+                writer.newLine();
+
+                // Write row data
+                for (int i = 0; i < tableModel.getRowCount(); i++) {
+                    for (int j = 0; j < tableModel.getColumnCount(); j++) {
+                        writer.write(tableModel.getValueAt(i, j).toString() + ",");
+                    }
+                    writer.newLine();
+                }
+                JOptionPane.showMessageDialog(this, "Table data exported successfully!");
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error exporting data: " + ex.getMessage());
+            }
+        }
+    }
+											   
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            Filemanager app = new Filemanager();
+            app.setVisible(true);
+        });
+    }
+}

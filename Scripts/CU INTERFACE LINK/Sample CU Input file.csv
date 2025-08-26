@@ -1,0 +1,4 @@
+SiteID,CIQ gNodeB ID,F1C,F1U,UPF_Data,UPF_Voice,BEDC Scripts
+CLCLT00079A,535019,Info Missing,Info Missing,10.255.66.90,10.255.58.5,./bedc_charlotte_CLT_RDU_05.sh
+CLCLT00187A,535019,Info Missing,Info Missing,10.255.66.90,10.255.58.5,./bedc_charlotte_CLT_RDU_05.sh
+CLCLT00159A,535019,Info Missing,Info Missing,10.255.66.90,10.255.58.5,./bedc_charlotte_CLT_RDU_05.sh

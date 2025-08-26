@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ChatGPT-Style Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #f7f7f8;
+      font-family: "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 0 16px;
+    }
+
+    .chat-header {
+      padding: 20px 0;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #10a37f;
+    }
+
+    .chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 20px;
+    }
+
+    .message {
+      max-width: 90%;
+      margin: 10px 0;
+      padding: 12px 16px;
+      border-radius: 8px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .user-message {
+      align-self: flex-end;
+      background-color: #dcf8c6;
+    }
+
+    .bot-message {
+      align-self: flex-start;
+      background-color: #e6e6e6;
+    }
+
+    .input-area {
+      display: flex;
+      padding: 16px 0;
+      border-top: 1px solid #ccc;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .input-area button {
+      margin-left: 10px;
+      padding: 12px 20px;
+      background-color: #10a37f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .input-area button:hover {
+      background-color: #0e8c6a;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">ChatGPT-Style Chatbot</div>
+    <div id="chat-box" class="chat-box"></div>
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="Send a message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const toggleBtn = document.getElementById('chat-toggle');
+    const chatbot = document.getElementById('chatbot');
+    const chatBox = document.getElementById('chat-box');
+    const input = document.getElementById('user-input');
+
+    toggleBtn.addEventListener('click', () => {
+      chatbot.style.display = chatbot.style.display === 'flex' ? 'none' : 'flex';
+    });
+
+    function toggleChatbot() {
+      chatbot.style.display = 'none';
+    }
+
+    function sendMessage() {
+      const message = input.value.trim();
+      if (message === '') return;
+
+      appendMessage(message, 'user');
+      input.value = '';
+
+      setTimeout(() => {
+        const reply = getBotReply(message);
+        appendMessage(reply, 'bot');
+      }, 500);
+    }
+
+    function appendMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.className = `chat-message ${sender}`;
+      msg.textContent = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function getBotReply(msg) {
+      const responses = [
+        { pattern: /hello|hi|hey/i, reply: "Hello! How can I assist you today?" },
+        { pattern: /help/i, reply: "I'm here to help! Ask me anything." },
+        { pattern: /bye|goodbye/i, reply: "Goodbye! Have a great day!" },
+		{ pattern: /Team/i, reply: "You have Great Husam in your Team, SR Engineer Srinivas , SR Engineer Jayesh, Sr Engineer Kim, RF II Thamarai , RF II Cresto, RF II Rico, RF II Diego" },
+        { pattern: /your name/i, reply: "I'm a simple chatbot created in HTML, CSS, and JS by Jayeshkumar patel" },
+        { pattern: /time/i, reply: `Current time is ${new Date().toLocaleTimeString()}` },
+		
+      ];
+
+      for (let entry of responses) {
+        if (entry.pattern.test(msg)) return entry.reply;
+      }
+
+      return "Please ask jayeshkumer he can help you better than me... HA....HA....HA";
+    }
+
+    // Optional: Enter key to send message
+    input.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>

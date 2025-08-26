@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inline Chatbot</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    #chatbot {
+      width: 400px;
+      height: 600px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background-color: #10a37f;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .chat-box {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background-color: #f2f2f2;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-message {
+      margin: 8px 0;
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #dcf8c6;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background-color: #eeeeee;
+    }
+
+    .chat-input-area {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+
+    .chat-input-area input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .chat-input-area button {
+      padding: 10px 15px;
+      background-color: #10a37f;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .chat-input-area button:hover {
+      background-color: #0e8c6a;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="chatbot">
+    <div class="chat-header">AI ChatBot</div>
+    <div class="chat-box" id="chat-box"></div>
+    <div class="chat-input-area">
+      <input type="text" id="user-input" placeholder="Type a message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chat-box');
+    const input = document.getElementById('user-input');
+
+    const OPENROUTER_API_KEY = "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"; // ⚠️ For testing only
+    const MODEL = "deepseek/deepseek-r1-0528:free";
+
+    function appendMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.className = `chat-message ${sender}`;
+      msg.textContent = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const message = input.value.trim();
+      if (!message) return;
+
+      appendMessage(message, 'user');
+      input.value = '';
+      appendMessage("Typing...", 'bot');
+
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost",
+            "X-Title": "Inline Chatbot"
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: [{ role: "user", content: message }]
+          })
+        });
+
+        const data = await response.json();
+        chatBox.lastChild.remove(); // remove "Typing..."
+        const reply = data.choices?.[0]?.message?.content || "No response received.";
+        appendMessage(reply, 'bot');
+
+      } catch (err) {
+        chatBox.lastChild.remove();
+        appendMessage("Failed to reach AI. Check console.", 'bot');
+        console.error(err);
+      }
+    }
+
+    input.addEventListener('keypress', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>

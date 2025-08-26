@@ -1,0 +1,123 @@
+function importCSVFromGmail()  {
+try {
+var labelName = 'ATEST';
+var proclabelName = 'SSFileProcced';
+var destSheetId1 = '1VJmnSuEW9wLxhSObOTOKwm1DkAVZZqiJ8liJgCdYQas';
+var messageCount = 0;
+
+var labelcount = GmailApp.getUserLabelByName(labelName);
+var threadscount = labelcount.getThreads();
+threadscount.forEach(function(thread) {
+    messageCount += thread.getMessageCount();
+});
+Logger.log("message count" + messageCount);
+if (messageCount > 0) {
+  var query = '';
+  query += (query === '' ?('filename:csv') : (' OR filename:csv'));
+  query = 'label: ' + labelName + ' '+ query;
+  Logger.log('query:' + query);
+  
+  var label = getGmailLabel_(proclabelName);
+  var labeldel = getGmailLabel_(labelName);
+  Logger.log('query:' + query);
+  var threads = GmailApp.search(query); 
+  // Reading only the first item. 
+
+  //download the thread with all the attachments (they will build up over time)
+   var message = threads[0].getMessages(); 
+  //Get the most recent attachment
+  var attachment = message[message.length - 1].getAttachments()[0];
+
+ // var message = threads[0].getMessages()[0];
+ // var attachment = message.getAttachments()[0];
+  Logger.log(attachment.getName());
+  var sheet1 = SpreadsheetApp.openById(destSheetId1).getSheetByName('Market N1 row Data');
+
+  var csvstring= attachment.getDataAsString();
+  var sanitizedString = csvstring.replace(/(["'])(?:(?=(\\?))\2[\s\S])*?\1/g, function(e){return e.replace(/\r?\n|\r/g, ' ') });
+  var csvData = Utilities.parseCsv(sanitizedString, ",");
+  
+  sheet1.clearContents(); // clears target sheet
+  sheet1.getRange(1, 1, csvData.length, csvData[0].length).setValues(csvData); // adds data to the sheet  
+
+
+  // clean up
+  for(var i in threads)
+  {      
+	    threads[i].removeLabel(labeldel);
+     threads[i].addLabel(label);
+     //threads[i].moveToTrash();
+  }
+
+  // FindAndReplaceText();
+  // UpdateDateRec();
+  // CXTIMELINE();
+  //Cleandata();
+  //Emptytrash();
+  //CLone2SitedeploymentStatus();
+
+} else {
+
+  Logger.log("EMAIL COUNT IS = " & messageCount);
+ // CLone2SitedeploymentStatus();
+}
+
+} catch (f) {
+
+    Logger.log(f.toString());
+  }
+}
+
+
+function Emptytrash() {
+  var pageToken=null;
+  do {
+    var threadList=Gmail.Users.Threads.list('me', {q:'in:trash label:Trash',pageToken:pageToken});
+    if (threadList.threads && threadList.threads.length>0) {
+      threadList.threads.forEach(function(thread) {
+        Gmail.Users.Threads.remove("me", thread.id);
+      });
+    }
+    pageToken=threadList.nextPageToken;
+  } while (pageToken);
+}
+
+function getGmailLabel_(name)
+{
+  var label = GmailApp.getUserLabelByName(name);
+  if(!label)
+  {
+	  label = GmailApp.createLabel(name);
+  }
+  return label;
+}
+
+function UpdateDateRec() 
+{
+  var spreadsheet1 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Time');
+  var cell = spreadsheet1.getRange("A2");
+  var now = new Date();
+  cell.setValue(now);
+
+  var sss = SpreadsheetApp.openById("1K5bUN0ICCMPh8n-Z4hfvDepFs9SrZfWYvoDHZIarVoc");
+  var ss = sss.getSheetByName('Time');
+  var cell = ss.getRange("A2");
+  cell.setValue(now);
+
+}
+
+function CountEmail() {
+
+var labelName = 'POR';
+var messageCount = 0;
+
+var label = GmailApp.getUserLabelByName(labelName);
+var threads = label.getThreads();
+threads.forEach(function(thread) {
+    messageCount += thread.getMessageCount();
+});
+
+
+Logger.log(messageCount);
+
+}
